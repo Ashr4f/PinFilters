@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.6
+
+- Fixed the invisible map button: the cloned crafting button inherited the inactive state of the closed crafting panel. It is forced active and given its own size, with new Button Width and Button Height settings.
+
 ## 1.0.5
 
 - Real button with a background, cloned from the crafting panel, instead of a bare checkmark. Falls back to a map toggle clone if that button cannot be found.

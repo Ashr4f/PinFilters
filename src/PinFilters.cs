@@ -14,7 +14,7 @@ namespace PinFilters
     {
         public const string ModGuid = "ashr4f.pinfilters";
         public const string ModName = "PinFilters";
-        public const string ModVersion = "1.0.5";
+        public const string ModVersion = "1.0.6";
 
         internal static ManualLogSource Log = null!;
 
@@ -23,6 +23,8 @@ namespace PinFilters
         internal static ConfigEntry<KeyboardShortcut> ToggleKey = null!;
         internal static ConfigEntry<bool> GroupByIcon = null!;
         internal static ConfigEntry<float> MaxPanelHeight = null!;
+        internal static ConfigEntry<float> ButtonWidth = null!;
+        internal static ConfigEntry<float> ButtonHeight = null!;
         internal static ConfigEntry<float> ButtonOffsetX = null!;
         internal static ConfigEntry<float> ButtonOffsetY = null!;
 
@@ -44,6 +46,12 @@ namespace PinFilters
 
             MaxPanelHeight = Config.Bind("Panel", "Max Height", 420f,
                 "Maximum panel height in pixels. The list scrolls beyond that.");
+
+            ButtonWidth = Config.Bind("Panel", "Button Width", 150f,
+                "Width of the map button in pixels.");
+
+            ButtonHeight = Config.Bind("Panel", "Button Height", 36f,
+                "Height of the map button in pixels.");
 
             ButtonOffsetX = Config.Bind("Panel", "Button Offset X", 0f,
                 "Horizontal offset in pixels of the map toggle, relative to the public position toggle.");
@@ -452,6 +460,12 @@ namespace PinFilters
                 _clone = UnityEngine.Object.Instantiate(source.gameObject, anchor.transform.parent);
                 _clone.name = "PinFilters_Button";
 
+                // The crafting panel is inactive while the inventory is closed,
+                // so the clone inherits that state and would stay invisible.
+                _clone.SetActive(true);
+                foreach (Transform child in _clone.GetComponentsInChildren<Transform>(true))
+                    child.gameObject.SetActive(true);
+
                 RectTransform? src = anchor.GetComponent<RectTransform>();
                 RectTransform? rt = _clone.GetComponent<RectTransform>();
                 if (src != null && rt != null)
@@ -460,6 +474,9 @@ namespace PinFilters
                     rt.anchorMax = src.anchorMax;
                     rt.pivot = src.pivot;
                     rt.anchoredPosition = src.anchoredPosition + new Vector2(PinFiltersPlugin.ButtonOffsetX.Value, PinFiltersPlugin.ButtonOffsetY.Value);
+                    rt.localScale = Vector3.one;
+                    // The crafting button is much wider than the map controls.
+                    if (!_isToggle) rt.sizeDelta = new Vector2(PinFiltersPlugin.ButtonWidth.Value, PinFiltersPlugin.ButtonHeight.Value);
                 }
 
                 string label = FilterPanel.T("Map filters", "Filtres de carte");
@@ -615,6 +632,12 @@ namespace PinFilters
             if (src == null || rt == null) return;
             Vector2 wanted = src.anchoredPosition + new Vector2(PinFiltersPlugin.ButtonOffsetX.Value, PinFiltersPlugin.ButtonOffsetY.Value);
             if (rt.anchoredPosition != wanted) rt.anchoredPosition = wanted;
+            if (!_isToggle)
+            {
+                Vector2 size = new Vector2(PinFiltersPlugin.ButtonWidth.Value, PinFiltersPlugin.ButtonHeight.Value);
+                if (rt.sizeDelta != size) rt.sizeDelta = size;
+            }
+            if (!_clone.activeSelf) _clone.SetActive(true);
         }
 
         // The toggle state is polled instead of hooking its event, which keeps

@@ -14,6 +14,8 @@ cannot bring hidden icons back.
 | Enabled | true | Master switch. |
 | Panel Key | F | Shows or hides the panel while the large map is open. |
 | Max Height | 420 | Maximum panel height in pixels, the list scrolls beyond that. |
+| Button Width | 150 | Width of the map button. |
+| Button Height | 36 | Height of the map button. |
 | Button Offset X | 0 | Horizontal offset of the map toggle. |
 | Button Offset Y | 92 | Vertical offset of the map toggle. Raise it if labels overlap. |
 | Group By Icon | true | Group pins by icon. Off groups them by pin type only, which merges different mod pins together. |
