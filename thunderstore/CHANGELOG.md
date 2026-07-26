@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.3
+
+- Rows show the pin name as the game displays it, so the list follows the user language. Nameless pins fall back to their vanilla type name.
+- The panel opens right above the map toggle instead of the screen corner.
+- Scrolling the list no longer zooms the map.
+- Button Offset X and Y replace the single offset, so the toggle can be moved out of the way of other labels.
+
 ## 1.0.2
 
 - A toggle is added on the map next to the vanilla ones, so the panel no longer depends on knowing a key.
