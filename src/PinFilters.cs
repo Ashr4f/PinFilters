@@ -14,7 +14,7 @@ namespace PinFilters
     {
         public const string ModGuid = "ashr4f.pinfilters";
         public const string ModName = "PinFilters";
-        public const string ModVersion = "1.0.6";
+        public const string ModVersion = "1.0.7";
 
         internal static ManualLogSource Log = null!;
 
@@ -56,7 +56,7 @@ namespace PinFilters
             ButtonOffsetX = Config.Bind("Panel", "Button Offset X", 0f,
                 "Horizontal offset in pixels of the map toggle, relative to the public position toggle.");
 
-            ButtonOffsetY = Config.Bind("Panel", "Button Offset Y", 92f,
+            ButtonOffsetY = Config.Bind("Panel", "Button Offset Y", 136f,
                 "Vertical offset in pixels of the map toggle, relative to the public position toggle. Raise it if the label overlaps another one.");
 
             new Harmony(ModGuid).PatchAll();
@@ -320,7 +320,7 @@ namespace PinFilters
         internal static Rect LastRect;
         private static Vector2 _scroll;
         private static string _search = "";
-        private static GUIStyle? _rowStyle;
+        private static GUIStyle? _labelStyle;
 
         internal static void Draw()
         {
@@ -362,22 +362,28 @@ namespace PinFilters
 
             _search = GUILayout.TextField(_search, GUILayout.Height(22f));
 
-            if (_rowStyle == null)
+            if (_labelStyle == null)
             {
-                _rowStyle = new GUIStyle(GUI.skin.toggle);
-                _rowStyle.fixedHeight = rowH - 4f;
-                _rowStyle.alignment = TextAnchor.MiddleLeft;
+                _labelStyle = new GUIStyle(GUI.skin.label);
+                _labelStyle.alignment = TextAnchor.MiddleLeft;
+                _labelStyle.wordWrap = false;
             }
 
             _scroll = GUILayout.BeginScrollView(_scroll);
             foreach (string group in shownGroups)
             {
-                GUILayout.BeginHorizontal(GUILayout.Height(rowH));
+                // Explicit rects instead of automatic layout: the checkbox, the
+                // icon and the label are centred on the same row.
+                Rect row = GUILayoutUtility.GetRect(w - 40f, rowH);
+                float cy = row.y + (rowH - 18f) * 0.5f;
+                Rect box = new Rect(row.x, cy, 18f, 18f);
+                Rect ico = new Rect(row.x + 24f, row.y + (rowH - 20f) * 0.5f, 20f, 20f);
+                Rect lab = new Rect(row.x + 50f, row.y, row.width - 50f, rowH);
+
                 bool shown = !PinGroups.IsHidden(group);
-                bool now = GUILayout.Toggle(shown, "", _rowStyle, GUILayout.Width(18f));
-                DrawIcon(PinGroups.Icons[group], rowH - 6f);
-                GUILayout.Label(Display(group), GUILayout.Height(rowH - 6f));
-                GUILayout.EndHorizontal();
+                bool now = GUI.Toggle(box, shown, "");
+                DrawIcon(ico, PinGroups.Icons[group]);
+                GUI.Label(lab, Display(group), _labelStyle);
                 if (now != shown) PinGroups.SetHidden(group, !now);
             }
             GUILayout.EndScrollView();
@@ -398,9 +404,8 @@ namespace PinFilters
 
         // Sprites are atlas regions, so the icon is drawn through its own uv
         // rectangle instead of the whole texture.
-        private static void DrawIcon(Sprite? sprite, float size)
+        private static void DrawIcon(Rect slot, Sprite? sprite)
         {
-            Rect slot = GUILayoutUtility.GetRect(size, size, GUILayout.Width(size), GUILayout.Height(size));
             if (sprite == null || sprite.texture == null) return;
             Rect tr = sprite.textureRect;
             Rect uv = new Rect(tr.x / sprite.texture.width, tr.y / sprite.texture.height,

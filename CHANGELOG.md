@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.7
+
+- Rows are laid out with explicit rects, so the checkbox, the icon and the label sit on the same baseline.
+- Default button offset raised again to clear the cartography table row.
+
 ## 1.0.6
 
 - Fixed the invisible map button: the cloned crafting button inherited the inactive state of the closed crafting panel. It is forced active and given its own size, with new Button Width and Button Height settings.

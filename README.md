@@ -17,7 +17,7 @@ cannot bring hidden icons back.
 | Button Width | 150 | Width of the map button. |
 | Button Height | 36 | Height of the map button. |
 | Button Offset X | 0 | Horizontal offset of the map toggle. |
-| Button Offset Y | 92 | Vertical offset of the map toggle. Raise it if labels overlap. |
+| Button Offset Y | 136 | Vertical offset of the map toggle. Raise it if labels overlap. |
 | Group By Icon | true | Group pins by icon. Off groups them by pin type only, which merges different mod pins together. |
 | Hidden Groups |  | Groups currently unchecked, written automatically. |
 
