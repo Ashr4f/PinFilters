@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.5
+
+- Real button with a background, cloned from the crafting panel, instead of a bare checkmark. Falls back to a map toggle clone if that button cannot be found.
+- The panel is aligned on the right edge of the button and opens leftwards and upwards.
+- Default button offset raised so labels no longer overlap.
+- Scrolling in the panel no longer moves or zooms the map: input is refused while the cursor is over the panel.
+
 ## 1.0.4
 
 - The toggle uses a map pin icon instead of the checkmark inherited from the cloned vanilla toggle.

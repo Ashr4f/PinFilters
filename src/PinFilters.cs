@@ -14,7 +14,7 @@ namespace PinFilters
     {
         public const string ModGuid = "ashr4f.pinfilters";
         public const string ModName = "PinFilters";
-        public const string ModVersion = "1.0.4";
+        public const string ModVersion = "1.0.5";
 
         internal static ManualLogSource Log = null!;
 
@@ -48,7 +48,7 @@ namespace PinFilters
             ButtonOffsetX = Config.Bind("Panel", "Button Offset X", 0f,
                 "Horizontal offset in pixels of the map toggle, relative to the public position toggle.");
 
-            ButtonOffsetY = Config.Bind("Panel", "Button Offset Y", 64f,
+            ButtonOffsetY = Config.Bind("Panel", "Button Offset Y", 92f,
                 "Vertical offset in pixels of the map toggle, relative to the public position toggle. Raise it if the label overlaps another one.");
 
             new Harmony(ModGuid).PatchAll();
@@ -332,11 +332,20 @@ namespace PinFilters
             float wanted = 96f + shownGroups.Count * rowH;
             float h = Mathf.Min(maxH, wanted);
 
-            // Anchored just above the map toggle, so the panel appears where it
-            // was opened from.
-            Vector2 anchor = MapButton.ScreenPosition();
-            float x = anchor.x >= 0f ? Mathf.Clamp(anchor.x - w * 0.5f, 8f, Screen.width - w - 8f) : 24f;
-            float y = anchor.y >= 0f ? Mathf.Max(8f, Screen.height - anchor.y - h - 24f) : 90f;
+            // Right edge aligned with the button, growing to the left and
+            // upwards, so the panel never covers the map controls.
+            Rect btn = MapButton.ScreenRect();
+            float x, y;
+            if (btn.width > 0f)
+            {
+                x = Mathf.Clamp(btn.xMax - w, 8f, Screen.width - w - 8f);
+                y = Mathf.Clamp(Screen.height - btn.yMax - h - 8f, 8f, Screen.height - h - 8f);
+            }
+            else
+            {
+                x = Screen.width - w - 24f;
+                y = 90f;
+            }
             Rect area = new Rect(x, y, w, h);
             LastRect = area;
 
@@ -420,8 +429,9 @@ namespace PinFilters
     internal static class MapButton
     {
         private static GameObject? _clone;
-        private static Component? _toggle;
+        private static Component? _control;
         private static PropertyInfo? _isOn;
+        private static bool _isToggle;
         private static bool _failed;
 
         internal static void Ensure(Minimap map)
@@ -429,16 +439,20 @@ namespace PinFilters
             if (_clone != null || _failed) return;
             try
             {
-                // The UI assemblies are not referenced, so the vanilla toggle is
-                // cloned and driven through reflection.
                 FieldInfo? field = AccessTools.Field(typeof(Minimap), "m_publicPosition");
-                Component? source = field?.GetValue(map) as Component;
-                if (source == null || source.transform == null) return;
+                Component? anchor = field?.GetValue(map) as Component;
+                if (anchor == null || anchor.transform == null) return;
 
-                _clone = UnityEngine.Object.Instantiate(source.gameObject, source.transform.parent);
-                _clone.name = "PinFilters_Toggle";
+                // A real button with a background is cloned from the crafting
+                // panel, which is what the vanilla UI uses for actions.
+                Component? source = FindCraftButton();
+                _isToggle = source == null;
+                if (source == null) source = anchor;
 
-                RectTransform? src = source.GetComponent<RectTransform>();
+                _clone = UnityEngine.Object.Instantiate(source.gameObject, anchor.transform.parent);
+                _clone.name = "PinFilters_Button";
+
+                RectTransform? src = anchor.GetComponent<RectTransform>();
                 RectTransform? rt = _clone.GetComponent<RectTransform>();
                 if (src != null && rt != null)
                 {
@@ -454,45 +468,86 @@ namespace PinFilters
                     if (c == null) continue;
                     string type = c.GetType().Name;
                     if (type.Contains("TextMeshPro") || type == "Text")
-                    {
-                        PropertyInfo? text = c.GetType().GetProperty("text");
-                        text?.SetValue(c, label, null);
-                    }
+                        c.GetType().GetProperty("text")?.SetValue(c, label, null);
                 }
 
                 foreach (Component c in _clone.GetComponents<Component>())
                 {
-                    if (c != null && c.GetType().Name == "Toggle")
+                    if (c == null) continue;
+                    string type = c.GetType().Name;
+                    if (type == "Button" || type == "Toggle")
                     {
-                        _toggle = c;
-                        _isOn = c.GetType().GetProperty("isOn");
+                        _control = c;
                         break;
                     }
                 }
+                if (_control == null) throw new Exception("no button or toggle on the clone");
 
-                // The clone keeps the vanilla listeners, which would toggle the
-                // public position. They are cleared before use.
-                if (_toggle != null)
+                string eventName = _isToggle ? "onValueChanged" : "onClick";
+                PropertyInfo? evt = _control.GetType().GetProperty(eventName);
+                object? handler = evt?.GetValue(_control, null);
+                handler?.GetType().GetMethod("RemoveAllListeners")?.Invoke(handler, null);
+
+                if (_isToggle)
                 {
-                    PropertyInfo? evt = _toggle.GetType().GetProperty("onValueChanged");
-                    object? handler = evt?.GetValue(_toggle, null);
-                    handler?.GetType().GetMethod("RemoveAllListeners")?.Invoke(handler, null);
-                    _isOn?.SetValue(_toggle, FilterPanel.Visible, null);
+                    _isOn = _control.GetType().GetProperty("isOn");
+                    _isOn?.SetValue(_control, FilterPanel.Visible, null);
+                    ReplaceCheckmark();
                 }
-
-                if (_toggle == null) throw new Exception("toggle component not found");
-
-                ReplaceCheckmark();
+                else
+                {
+                    AddClickListener(handler);
+                }
             }
             catch (Exception e)
             {
-                PinFiltersPlugin.Log.LogWarning($"PinFilters: map toggle not created ({e.Message}). The panel key still works.");
+                PinFiltersPlugin.Log.LogWarning($"PinFilters: map button not created ({e.Message}). The panel key still works.");
                 if (_clone != null) UnityEngine.Object.Destroy(_clone);
                 _clone = null;
+                _control = null;
                 _failed = true;
             }
         }
 
+        private static Component? FindCraftButton()
+        {
+            try
+            {
+                if (InventoryGui.instance == null) return null;
+                foreach (string name in new[] { "m_craftButton", "m_repairButton", "m_upgradeButton" })
+                {
+                    FieldInfo? f = AccessTools.Field(typeof(InventoryGui), name);
+                    if (f?.GetValue(InventoryGui.instance) is Component c && c != null) return c;
+                }
+            }
+            catch
+            {
+                // Falls back to cloning the map toggle.
+            }
+            return null;
+        }
+
+        // onClick takes a UnityAction, which lives in the core module, so the
+        // listener can be built without referencing the UI assembly.
+        private static void AddClickListener(object? handler)
+        {
+            if (handler == null) return;
+            foreach (MethodInfo mi in handler.GetType().GetMethods())
+            {
+                if (mi.Name != "AddListener") continue;
+                ParameterInfo[] ps = mi.GetParameters();
+                if (ps.Length != 1) continue;
+                Delegate action = Delegate.CreateDelegate(ps[0].ParameterType, typeof(MapButton).GetMethod(nameof(OnClick), AccessTools.all));
+                mi.Invoke(handler, new object[] { action });
+                return;
+            }
+        }
+
+        private static void OnClick()
+        {
+            FilterPanel.Visible = !FilterPanel.Visible;
+            FilterPanel.WantsPanel = FilterPanel.Visible;
+        }
 
         // The clone inherits the checkmark of the public position toggle, a
         // player with a sword, which means nothing for a pin filter. It is
@@ -533,13 +588,20 @@ namespace PinFilters
         }
         // Screen position of the toggle, used to place the panel. Negative
         // when the toggle could not be created.
-        internal static Vector2 ScreenPosition()
+        // Screen rect of the button, used to align the panel on its right
+        // edge and place it above. Zero sized when unavailable.
+        internal static Rect ScreenRect()
         {
-            if (_clone == null) return new Vector2(-1f, -1f);
+            if (_clone == null) return Rect.zero;
             RectTransform? rt = _clone.GetComponent<RectTransform>();
-            if (rt == null) return new Vector2(-1f, -1f);
-            Vector3 p = rt.position;
-            return new Vector2(p.x, p.y);
+            if (rt == null) return Rect.zero;
+            Vector3[] corners = new Vector3[4];
+            rt.GetWorldCorners(corners);
+            float minX = Mathf.Min(corners[0].x, corners[2].x);
+            float maxX = Mathf.Max(corners[0].x, corners[2].x);
+            float minY = Mathf.Min(corners[0].y, corners[1].y);
+            float maxY = Mathf.Max(corners[0].y, corners[1].y);
+            return new Rect(minX, minY, maxX - minX, maxY - minY);
         }
 
         // Offsets can be changed while playing, so they are reapplied.
@@ -559,21 +621,39 @@ namespace PinFilters
         // the reflection minimal and cannot leak listeners.
         internal static void Sync()
         {
-            if (_toggle == null || _isOn == null) return;
+            if (!_isToggle || _control == null || _isOn == null) return;
             try
             {
-                bool on = _isOn.GetValue(_toggle, null) is bool b && b;
+                bool on = _isOn.GetValue(_control, null) is bool b && b;
                 if (on != FilterPanel.Visible)
                 {
-                    if (FilterPanel.WantsPanel != FilterPanel.Visible) _isOn.SetValue(_toggle, FilterPanel.Visible, null);
+                    if (FilterPanel.WantsPanel != FilterPanel.Visible) _isOn.SetValue(_control, FilterPanel.Visible, null);
                     else FilterPanel.Visible = on;
                 }
                 FilterPanel.WantsPanel = FilterPanel.Visible;
             }
             catch
             {
-                _toggle = null;
+                _control = null;
             }
+        }
+    }
+
+
+    // The map reads the mouse itself, so scrolling inside the panel would zoom
+    // it. Input is refused for the frame instead of undoing the zoom, which
+    // would flicker.
+    [HarmonyPatch(typeof(Minimap), "UpdateMap")]
+    internal static class Minimap_UpdateMap_Patch
+    {
+        private static void Prefix(ref bool takeInput)
+        {
+            if (!takeInput) return;
+            if (!PinFiltersPlugin.Enabled.Value || !FilterPanel.Visible) return;
+            if (Minimap.instance == null || Minimap.instance.m_mode != Minimap.MapMode.Large) return;
+
+            Vector2 mouse = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+            if (FilterPanel.LastRect.Contains(mouse)) takeInput = false;
         }
     }
 
@@ -589,35 +669,8 @@ namespace PinFilters
     [HarmonyPatch(typeof(Minimap), "Update")]
     internal static class Minimap_Update_Patch
     {
-        private static FieldInfo? _zoomField;
-        private static float _zoomBefore;
-        private static bool _guard;
-
-        // Scrolling inside the panel would zoom the map at the same time. The
-        // zoom is captured before the update and restored when the cursor is
-        // over the panel.
-        private static void Prefix(Minimap __instance)
-        {
-            _guard = false;
-            if (!PinFiltersPlugin.Enabled.Value || !FilterPanel.Visible) return;
-            if (__instance.m_mode != Minimap.MapMode.Large) return;
-
-            Vector2 mouse = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-            if (!FilterPanel.LastRect.Contains(mouse)) return;
-
-            if (_zoomField == null) _zoomField = AccessTools.Field(typeof(Minimap), "m_largeZoom");
-            if (_zoomField == null) return;
-            _zoomBefore = (float)_zoomField.GetValue(__instance);
-            _guard = true;
-        }
-
         private static void Postfix(Minimap __instance)
         {
-            if (_guard && _zoomField != null)
-            {
-                _zoomField.SetValue(__instance, _zoomBefore);
-                _guard = false;
-            }
 
             if (!PinFiltersPlugin.Enabled.Value) return;
 
