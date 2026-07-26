@@ -14,7 +14,7 @@ namespace PinFilters
     {
         public const string ModGuid = "ashr4f.pinfilters";
         public const string ModName = "PinFilters";
-        public const string ModVersion = "1.0.7";
+        public const string ModVersion = "1.0.8";
 
         internal static ManualLogSource Log = null!;
 
@@ -321,6 +321,8 @@ namespace PinFilters
         private static Vector2 _scroll;
         private static string _search = "";
         private static GUIStyle? _labelStyle;
+        private static GUIStyle? _placeholderStyle;
+        private static Texture2D? _fill;
 
         internal static void Draw()
         {
@@ -357,10 +359,37 @@ namespace PinFilters
             Rect area = new Rect(x, y, w, h);
             LastRect = area;
 
-            GUI.Box(area, T("Map filters", "Filtres de carte"));
+            int hiddenCount = 0;
+            foreach (string g in groups) if (PinGroups.IsHidden(g)) hiddenCount++;
+            string title = T("Map filters", "Filtres de carte");
+            if (hiddenCount > 0) title += hiddenCount == 1
+                ? T(" (1 hidden)", " (1 masqué)")
+                : T($" ({hiddenCount} hidden)", $" ({hiddenCount} masqués)");
+            GUI.Box(area, title);
             GUILayout.BeginArea(new Rect(area.x + 8f, area.y + 26f, area.width - 16f, area.height - 34f));
 
-            _search = GUILayout.TextField(_search, GUILayout.Height(22f));
+            Rect searchRow = GUILayoutUtility.GetRect(area.width - 16f, 22f);
+            Rect searchField = new Rect(searchRow.x, searchRow.y, searchRow.width - (_search.Length > 0 ? 24f : 0f), 22f);
+            GUI.SetNextControlName("PinFiltersSearch");
+            _search = GUI.TextField(searchField, _search);
+
+            if (_search.Length == 0 && GUI.GetNameOfFocusedControl() != "PinFiltersSearch")
+            {
+                if (_placeholderStyle == null)
+                {
+                    _placeholderStyle = new GUIStyle(GUI.skin.label);
+                    _placeholderStyle.alignment = TextAnchor.MiddleLeft;
+                    _placeholderStyle.fontStyle = FontStyle.Italic;
+                    _placeholderStyle.normal.textColor = new Color(1f, 1f, 1f, 0.45f);
+                }
+                GUI.Label(new Rect(searchField.x + 6f, searchField.y, searchField.width - 8f, 22f),
+                    T("Search a pin type", "Rechercher un type de pin"), _placeholderStyle);
+            }
+            else if (_search.Length > 0)
+            {
+                if (GUI.Button(new Rect(searchRow.xMax - 22f, searchRow.y, 22f, 22f), "x")) _search = "";
+            }
+            GUILayout.Space(4f);
 
             if (_labelStyle == null)
             {
@@ -381,9 +410,26 @@ namespace PinFilters
                 Rect lab = new Rect(row.x + 50f, row.y, row.width - 50f, rowH);
 
                 bool shown = !PinGroups.IsHidden(group);
+                bool hover = row.Contains(Event.current.mousePosition);
+
+                if (hover) FillRect(row, new Color(1f, 1f, 1f, 0.12f));
+
                 bool now = GUI.Toggle(box, shown, "");
                 DrawIcon(ico, PinGroups.Icons[group]);
+
+                Color previous = GUI.color;
+                if (!shown) GUI.color = new Color(1f, 1f, 1f, 0.45f);
                 GUI.Label(lab, Display(group), _labelStyle);
+                GUI.color = previous;
+
+                // The whole row is clickable, not just the small checkbox.
+                if (hover && Event.current.type == EventType.MouseDown && Event.current.button == 0
+                    && !box.Contains(Event.current.mousePosition))
+                {
+                    now = !shown;
+                    Event.current.Use();
+                }
+
                 if (now != shown) PinGroups.SetHidden(group, !now);
             }
             GUILayout.EndScrollView();
@@ -411,6 +457,20 @@ namespace PinFilters
             Rect uv = new Rect(tr.x / sprite.texture.width, tr.y / sprite.texture.height,
                                tr.width / sprite.texture.width, tr.height / sprite.texture.height);
             GUI.DrawTextureWithTexCoords(slot, sprite.texture, uv);
+        }
+
+        private static void FillRect(Rect r, Color color)
+        {
+            if (_fill == null)
+            {
+                _fill = new Texture2D(1, 1);
+                _fill.SetPixel(0, 0, Color.white);
+                _fill.Apply();
+            }
+            Color previous = GUI.color;
+            GUI.color = color;
+            GUI.DrawTexture(r, _fill);
+            GUI.color = previous;
         }
 
         // The pin label comes from the game, so it is already in the user

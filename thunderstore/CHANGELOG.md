@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.8
+
+- Rows highlight on hover and the whole row is clickable, not just the checkbox.
+- Hidden groups are dimmed in the list, and the title shows how many are hidden.
+- The search field has a placeholder and a clear button.
+
 ## 1.0.7
 
 - Rows are laid out with explicit rects, so the checkbox, the icon and the label sit on the same baseline.
