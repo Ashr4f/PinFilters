@@ -1,6 +1,6 @@
 # PinFilters
 
-Too many icons on the map? Open the large map, press F, uncheck what you do not want to see.
+Too many icons on the map? Open the large map, click Map filters next to the vanilla toggles (or press F), and uncheck what you do not want to see. The list has a search field and shows each icon next to its name.
 
 Pins are grouped by their icon, so every pin family gets its own line whatever mod created it.
 Unchecking hides the pins visually, nothing is ever deleted, and the choices are remembered
@@ -13,6 +13,8 @@ cannot bring hidden icons back.
 | --- | --- | --- |
 | Enabled | true | Master switch. |
 | Panel Key | F | Shows or hides the panel while the large map is open. |
+| Max Height | 420 | Maximum panel height in pixels, the list scrolls beyond that. |
+| Button Offset | 34 | Vertical offset of the map toggle above the vanilla one. |
 | Group By Icon | true | Group pins by icon. Off groups them by pin type only, which merges different mod pins together. |
 | Hidden Groups |  | Groups currently unchecked, written automatically. |
 
