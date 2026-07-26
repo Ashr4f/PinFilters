@@ -14,7 +14,7 @@ namespace PinFilters
     {
         public const string ModGuid = "ashr4f.pinfilters";
         public const string ModName = "PinFilters";
-        public const string ModVersion = "1.0.3";
+        public const string ModVersion = "1.0.4";
 
         internal static ManualLogSource Log = null!;
 
@@ -481,6 +481,8 @@ namespace PinFilters
                 }
 
                 if (_toggle == null) throw new Exception("toggle component not found");
+
+                ReplaceCheckmark();
             }
             catch (Exception e)
             {
@@ -491,6 +493,44 @@ namespace PinFilters
             }
         }
 
+
+        // The clone inherits the checkmark of the public position toggle, a
+        // player with a sword, which means nothing for a pin filter. It is
+        // swapped for a map pin icon taken from the minimap itself.
+        private static void ReplaceCheckmark()
+        {
+            if (_clone == null) return;
+            Sprite? icon = PickIcon();
+            if (icon == null) return;
+
+            foreach (Component c in _clone.GetComponentsInChildren<Component>(true))
+            {
+                if (c == null || c.GetType().Name != "Image") continue;
+                // The checkmark is the graphic under the toggle background, so
+                // only children deeper than the root are replaced.
+                if (c.transform == _clone.transform) continue;
+                PropertyInfo? sprite = c.GetType().GetProperty("sprite");
+                if (sprite == null) continue;
+                sprite.SetValue(c, icon, null);
+                PropertyInfo? color = c.GetType().GetProperty("color");
+                color?.SetValue(c, Color.white, null);
+            }
+        }
+
+        private static Sprite? PickIcon()
+        {
+            Minimap map = Minimap.instance;
+            if (map == null || map.m_icons == null) return null;
+            foreach (Minimap.SpriteData sd in map.m_icons)
+            {
+                if (sd.m_name == Minimap.PinType.Icon3 && sd.m_icon != null) return sd.m_icon;
+            }
+            foreach (Minimap.SpriteData sd in map.m_icons)
+            {
+                if (sd.m_icon != null) return sd.m_icon;
+            }
+            return null;
+        }
         // Screen position of the toggle, used to place the panel. Negative
         // when the toggle could not be created.
         internal static Vector2 ScreenPosition()

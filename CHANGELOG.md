@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.4
+
+- The toggle uses a map pin icon instead of the checkmark inherited from the cloned vanilla toggle.
+
 ## 1.0.3
 
 - Rows show the pin name as the game displays it, so the list follows the user language. Nameless pins fall back to their vanilla type name.
