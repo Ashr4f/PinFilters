@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.14
+
+- Own mod icon.
+
 ## 1.0.13
 
 - Button placement adjusted by one pixel on both axes, so the offsets stay at 0.
