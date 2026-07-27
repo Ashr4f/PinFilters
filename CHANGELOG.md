@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.12
+
+- The button sits above the cartography row out of the box. The offsets are now fine tuning on top of that placement and default to 0.
+
 ## 1.0.11
 
 - Clicking or scrolling the list can no longer move the map: the map update is skipped while the panel has the mouse, instead of relying on a method that some game versions do not have.

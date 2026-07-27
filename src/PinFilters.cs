@@ -14,7 +14,7 @@ namespace PinFilters
     {
         public const string ModGuid = "ashr4f.pinfilters";
         public const string ModName = "PinFilters";
-        public const string ModVersion = "1.0.11";
+        public const string ModVersion = "1.0.12";
 
         internal static ManualLogSource Log = null!;
 
@@ -71,10 +71,10 @@ namespace PinFilters
                 "Height of the map button in pixels.");
 
             ButtonOffsetX = Config.Bind("Panel", "Button Offset X", 0f,
-                "Horizontal offset in pixels of the map toggle, relative to the public position toggle.");
+                "Fine tuning of the button position, added to the built in placement. Leave at 0 unless another interface mod moves the map controls.");
 
-            ButtonOffsetY = Config.Bind("Panel", "Button Offset Y", 136f,
-                "Vertical offset in pixels of the map toggle, relative to the public position toggle. Raise it if the label overlaps another one.");
+            ButtonOffsetY = Config.Bind("Panel", "Button Offset Y", 0f,
+                "Fine tuning of the button position, added to the built in placement. Leave at 0 unless another interface mod moves the map controls.");
 
             new Harmony(ModGuid).PatchAll();
         }
@@ -635,6 +635,11 @@ namespace PinFilters
     // ------------------------------------------------------------------
     internal static class MapButton
     {
+        // Placement measured on the vanilla map, above the cartography row.
+        // Canvas units, so it scales with the resolution like the rest of the UI.
+        private const float BaseX = -52f;
+        private const float BaseY = 98f;
+
         private static GameObject? _clone;
         private static Component? _control;
         private static PropertyInfo? _isOn;
@@ -672,7 +677,7 @@ namespace PinFilters
                     rt.anchorMin = src.anchorMin;
                     rt.anchorMax = src.anchorMax;
                     rt.pivot = src.pivot;
-                    rt.anchoredPosition = src.anchoredPosition + new Vector2(PinFiltersPlugin.ButtonOffsetX.Value, PinFiltersPlugin.ButtonOffsetY.Value);
+                    rt.anchoredPosition = src.anchoredPosition + new Vector2(BaseX + PinFiltersPlugin.ButtonOffsetX.Value, BaseY + PinFiltersPlugin.ButtonOffsetY.Value);
                     rt.localScale = Vector3.one;
                     // The crafting button is much wider than the map controls.
                     if (!_isToggle) rt.sizeDelta = new Vector2(PinFiltersPlugin.ButtonWidth.Value, PinFiltersPlugin.ButtonHeight.Value);
@@ -829,7 +834,7 @@ namespace PinFilters
             RectTransform? src = source?.GetComponent<RectTransform>();
             RectTransform? rt = _clone.GetComponent<RectTransform>();
             if (src == null || rt == null) return;
-            Vector2 wanted = src.anchoredPosition + new Vector2(PinFiltersPlugin.ButtonOffsetX.Value, PinFiltersPlugin.ButtonOffsetY.Value);
+            Vector2 wanted = src.anchoredPosition + new Vector2(BaseX + PinFiltersPlugin.ButtonOffsetX.Value, BaseY + PinFiltersPlugin.ButtonOffsetY.Value);
             if (rt.anchoredPosition != wanted) rt.anchoredPosition = wanted;
             if (!_isToggle)
             {
