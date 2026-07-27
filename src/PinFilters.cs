@@ -14,7 +14,7 @@ namespace PinFilters
     {
         public const string ModGuid = "ashr4f.pinfilters";
         public const string ModName = "PinFilters";
-        public const string ModVersion = "1.0.9";
+        public const string ModVersion = "1.0.10";
 
         internal static ManualLogSource Log = null!;
 
@@ -22,6 +22,8 @@ namespace PinFilters
         internal static ConfigEntry<string> Hidden = null!;
         internal static ConfigEntry<KeyboardShortcut> ToggleKey = null!;
         internal static ConfigEntry<bool> GroupByIcon = null!;
+        internal static ConfigEntry<string> SearchAliases = null!;
+        internal static ConfigEntry<string> ExcludedGroups = null!;
         internal static ConfigEntry<float> MaxPanelHeight = null!;
         internal static ConfigEntry<float> ButtonWidth = null!;
         internal static ConfigEntry<float> ButtonHeight = null!;
@@ -40,6 +42,13 @@ namespace PinFilters
 
             ToggleKey = Config.Bind("General", "Panel Key", new KeyboardShortcut(KeyCode.F),
                 "Key that shows or hides the filter panel while the large map is open.");
+
+            ExcludedGroups = Config.Bind("General", "Excluded Groups", "Shout",
+                "Comma-separated groups never listed in the panel. They stay visible on the map, they are just not filterable.");
+
+            SearchAliases = Config.Bind("General", "Search Aliases", "",
+                "Extra search words per group, so everyone finds a pin with the word they know.\n" +
+                "Format: group=word1|word2, separated by commas. Example: Myrt=Myrtille|Blueberry, Chard=Thistle|Chardon");
 
             GroupByIcon = Config.Bind("General", "Group By Icon", true,
                 "Group pins by their icon, so every mod pin type gets its own line even when the mod uses no distinct pin type.");
@@ -358,6 +367,7 @@ namespace PinFilters
         internal static bool Visible;
         internal static bool WantsPanel;
         internal static Rect LastRect;
+        internal static bool Interacting;
         private static Vector2 _scroll;
         private static string _search = "";
         private static GUIStyle? _labelStyle;
@@ -366,7 +376,11 @@ namespace PinFilters
 
         internal static void Draw()
         {
-            List<string> groups = new List<string>(PinGroups.Icons.Keys);
+            List<string> groups = new List<string>();
+            foreach (string g in PinGroups.Icons.Keys)
+            {
+                if (!IsExcluded(g)) groups.Add(g);
+            }
             groups.Sort(StringComparer.OrdinalIgnoreCase);
 
             List<string> shownGroups = new List<string>();
@@ -512,13 +526,37 @@ namespace PinFilters
             GUI.color = previous;
         }
 
+        private static bool IsExcluded(string group)
+        {
+            foreach (string part in PinFiltersPlugin.ExcludedGroups.Value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string p = part.Trim();
+                if (p.Length > 0 && (string.Equals(p, group, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(p, Display(group), StringComparison.OrdinalIgnoreCase))) return true;
+            }
+            return false;
+        }
+
         // Any of the label, the group key or the icon name matching is enough,
         // so both a server label and an original name find the group.
         private static bool Matches(string group, string needle)
         {
-            return Contains(Display(group), needle)
-                || Contains(group, needle)
-                || Contains(PinGroups.AliasOf(group), needle);
+            if (Contains(Display(group), needle) || Contains(group, needle) || Contains(PinGroups.AliasOf(group), needle))
+                return true;
+
+            // Words added by the server, so a French player finds "Myrtille"
+            // while the pin label is an abbreviation.
+            foreach (string entry in PinFiltersPlugin.SearchAliases.Value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string[] kv = entry.Split('=');
+                if (kv.Length != 2) continue;
+                if (!Contains(group, kv[0].Trim()) && !Contains(Display(group), kv[0].Trim())) continue;
+                foreach (string word in kv[1].Split('|'))
+                {
+                    if (Contains(word.Trim(), needle)) return true;
+                }
+            }
+            return false;
         }
 
         private static bool Contains(string haystack, string needle)
@@ -795,7 +833,29 @@ namespace PinFilters
             if (Minimap.instance == null || Minimap.instance.m_mode != Minimap.MapMode.Large) return;
 
             Vector2 mouse = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-            if (FilterPanel.LastRect.Contains(mouse)) takeInput = false;
+            if (FilterPanel.Interacting || FilterPanel.LastRect.Contains(mouse)) takeInput = false;
+        }
+    }
+
+
+    // The map does not block movement, so the character would walk while the
+    // panel is open. Movement, jump and auto run are cancelled, leaving the
+    // vanilla keys that close the map untouched.
+    [HarmonyPatch(typeof(Player), nameof(Player.SetControls))]
+    internal static class Player_SetControls_Patch
+    {
+        private static void Prefix(Player __instance, ref Vector3 movedir, ref bool jump, ref bool autoRun,
+            ref bool attack, ref bool attackHold, ref bool secondaryAttack, ref bool block)
+        {
+            if (!PinFiltersPlugin.Enabled.Value || !FilterPanel.Visible) return;
+            if (__instance != Player.m_localPlayer) return;
+            movedir = Vector3.zero;
+            jump = false;
+            autoRun = false;
+            attack = false;
+            attackHold = false;
+            secondaryAttack = false;
+            block = false;
         }
     }
 
@@ -829,6 +889,18 @@ namespace PinFilters
 
             if (Minimap.InTextInput()) return;
             if (PinFiltersPlugin.ToggleKey.Value.IsDown()) FilterPanel.Visible = !FilterPanel.Visible;
+
+            // A click outside closes the panel, like any menu, and still
+            // reaches the map. The button itself is ignored so opening the
+            // panel does not close it in the same frame.
+            if (FilterPanel.Visible && Input.GetMouseButtonDown(0) && !FilterPanel.Interacting)
+            {
+                Vector2 mouse = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+                Rect btn = MapButton.ScreenRect();
+                bool onButton = btn.width > 0f
+                    && new Rect(btn.x, Screen.height - btn.yMax, btn.width, btn.height).Contains(mouse);
+                if (!FilterPanel.LastRect.Contains(mouse) && !onButton) FilterPanel.Visible = false;
+            }
         }
     }
 

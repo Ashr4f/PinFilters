@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.10
+
+- The character no longer moves while the panel is open. The keys that close the map keep working.
+- Dragging a scrollbar or a field in the panel no longer moves the map behind it.
+- Clicking outside the panel closes it, and the click still reaches the map.
+- New setting Search Aliases: extra words per group, so a player finds a pin with the word they know whatever the label on the map.
+- New setting Excluded Groups, with Shout excluded by default: those pins stay on the map but are not listed.
+
 ## 1.0.9
 
 - Groups are built on the pin label instead of the icon, so families sharing an icon are no longer hidden together, and every family shows up on its own line.

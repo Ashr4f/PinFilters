@@ -19,6 +19,8 @@ cannot bring hidden icons back.
 | Button Offset X | 0 | Horizontal offset of the map toggle. |
 | Button Offset Y | 136 | Vertical offset of the map toggle. Raise it if labels overlap. |
 | Group By Icon | true | Use the icon name as fallback when a pin has no label. Off falls back to the pin type. |
+| Search Aliases |  | Extra search words per group, format group=word1\|word2, comma separated. |
+| Excluded Groups | Shout | Groups never listed, they stay visible on the map. |
 | Hidden Groups |  | Groups currently unchecked, written automatically. |
 
 ## Install
