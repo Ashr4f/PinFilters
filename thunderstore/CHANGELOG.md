@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.13
+
+- Button placement adjusted by one pixel on both axes, so the offsets stay at 0.
+
 ## 1.0.12
 
 - The button sits above the cartography row out of the box. The offsets are now fine tuning on top of that placement and default to 0.

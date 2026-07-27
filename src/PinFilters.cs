@@ -14,7 +14,7 @@ namespace PinFilters
     {
         public const string ModGuid = "ashr4f.pinfilters";
         public const string ModName = "PinFilters";
-        public const string ModVersion = "1.0.12";
+        public const string ModVersion = "1.0.13";
 
         internal static ManualLogSource Log = null!;
 
@@ -637,8 +637,8 @@ namespace PinFilters
     {
         // Placement measured on the vanilla map, above the cartography row.
         // Canvas units, so it scales with the resolution like the rest of the UI.
-        private const float BaseX = -52f;
-        private const float BaseY = 98f;
+        private const float BaseX = -53f;
+        private const float BaseY = 97f;
 
         private static GameObject? _clone;
         private static Component? _control;
