@@ -14,7 +14,7 @@ namespace PinFilters
     {
         public const string ModGuid = "ashr4f.pinfilters";
         public const string ModName = "PinFilters";
-        public const string ModVersion = "1.0.8";
+        public const string ModVersion = "1.0.9";
 
         internal static ManualLogSource Log = null!;
 
@@ -85,6 +85,12 @@ namespace PinFilters
     {
         internal static readonly Dictionary<string, Sprite?> Icons = new Dictionary<string, Sprite?>();
         internal static readonly Dictionary<string, string> Labels = new Dictionary<string, string>();
+        internal static readonly Dictionary<string, string> Aliases = new Dictionary<string, string>();
+
+        internal static string AliasOf(string group)
+        {
+            return Aliases.TryGetValue(group, out string a) ? a : "";
+        }
         internal static readonly HashSet<string> HiddenGroups = new HashSet<string>();
 
         // The label shown to the player is the pin name itself, localized by
@@ -121,14 +127,45 @@ namespace PinFilters
         private static string _hiddenRaw = "";
         private static bool _synced;
 
+        // Grouping is done on the pin label, stripped of its counter, because
+        // several unrelated families can share the same icon. Pins whose name
+        // changes at runtime, like pings and shouts, are grouped by type so the
+        // list never fills up with player messages.
         internal static string GroupOf(Minimap.PinData pin)
         {
-            if (PinFiltersPlugin.GroupByIcon.Value && pin.m_icon != null)
-            {
-                string name = pin.m_icon.name;
-                if (!string.IsNullOrEmpty(name)) return name;
-            }
+            if (IsDynamicName(pin.m_type))
+                return pin.m_type.ToString();
+
+            string label = Normalize(pin.m_name);
+            if (label.Length > 0) return label;
+
+            if (PinFiltersPlugin.GroupByIcon.Value && pin.m_icon != null && !string.IsNullOrEmpty(pin.m_icon.name))
+                return pin.m_icon.name;
+
             return pin.m_type.ToString();
+        }
+
+        private static bool IsDynamicName(Minimap.PinType type)
+        {
+            return type == Minimap.PinType.Ping || type == Minimap.PinType.Shout
+                || type == Minimap.PinType.Player || type == Minimap.PinType.Death;
+        }
+
+        // Discovery pins carry a count, so "Myrt 6" and "Myrt 3" are the same
+        // family. Trailing digits and separators are removed.
+        internal static string Normalize(string? raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return "";
+            string s = Localization.instance != null ? Localization.instance.Localize(raw) : raw;
+            s = s.Trim();
+            int end = s.Length;
+            while (end > 0)
+            {
+                char c = s[end - 1];
+                if (char.IsDigit(c) || c == ' ' || c == 'x' || c == 'X' || c == ':' || c == '(' || c == ')') end--;
+                else break;
+            }
+            return s.Substring(0, end).Trim();
         }
 
         internal static void Track(Minimap.PinData pin)
@@ -138,11 +175,14 @@ namespace PinFilters
 
             if (Labels.TryGetValue(group, out string current) && current.Length > 0) return;
 
-            string label = "";
-            if (!string.IsNullOrEmpty(pin.m_name) && Localization.instance != null)
-                label = Localization.instance.Localize(pin.m_name);
-            if (string.IsNullOrEmpty(label)) label = TypeLabel(pin.m_type);
+            string label = IsDynamicName(pin.m_type) ? TypeLabel(pin.m_type) : Normalize(pin.m_name);
+            if (label.Length == 0) label = TypeLabel(pin.m_type);
             Labels[group] = label;
+
+            // The prefab or icon name is kept as a search alias, so both the
+            // server label and the original name find the group.
+            string alias = pin.m_icon != null ? pin.m_icon.name : "";
+            if (!string.IsNullOrEmpty(alias)) Aliases[group] = alias;
         }
 
         internal static bool IsHidden(string group)
@@ -332,8 +372,7 @@ namespace PinFilters
             List<string> shownGroups = new List<string>();
             foreach (string g in groups)
             {
-                if (_search.Length == 0 || Display(g).IndexOf(_search, StringComparison.OrdinalIgnoreCase) >= 0)
-                    shownGroups.Add(g);
+                if (_search.Length == 0 || Matches(g, _search)) shownGroups.Add(g);
             }
 
             const float rowH = 26f;
@@ -471,6 +510,21 @@ namespace PinFilters
             GUI.color = color;
             GUI.DrawTexture(r, _fill);
             GUI.color = previous;
+        }
+
+        // Any of the label, the group key or the icon name matching is enough,
+        // so both a server label and an original name find the group.
+        private static bool Matches(string group, string needle)
+        {
+            return Contains(Display(group), needle)
+                || Contains(group, needle)
+                || Contains(PinGroups.AliasOf(group), needle);
+        }
+
+        private static bool Contains(string haystack, string needle)
+        {
+            return !string.IsNullOrEmpty(haystack)
+                && haystack.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         // The pin label comes from the game, so it is already in the user

@@ -2,7 +2,7 @@
 
 Too many icons on the map? Open the large map, click Map filters next to the vanilla toggles (or press F), and uncheck what you do not want to see. The list has a search field, shows each icon next to its name, highlights the row under the cursor and dims what is hidden.
 
-Pins are grouped by their icon, so every pin family gets its own line whatever mod created it.
+Pins are grouped by their label, so every pin family gets its own line whatever mod created it, even when several families share the same icon.
 Unchecking hides the pins visually, nothing is ever deleted, and the choices are remembered
 between sessions. Hiding is reapplied every frame, so mods that constantly recreate their pins
 cannot bring hidden icons back.
@@ -18,7 +18,7 @@ cannot bring hidden icons back.
 | Button Height | 36 | Height of the map button. |
 | Button Offset X | 0 | Horizontal offset of the map toggle. |
 | Button Offset Y | 136 | Vertical offset of the map toggle. Raise it if labels overlap. |
-| Group By Icon | true | Group pins by icon. Off groups them by pin type only, which merges different mod pins together. |
+| Group By Icon | true | Use the icon name as fallback when a pin has no label. Off falls back to the pin type. |
 | Hidden Groups |  | Groups currently unchecked, written automatically. |
 
 ## Install

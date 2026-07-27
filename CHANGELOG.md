@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.9
+
+- Groups are built on the pin label instead of the icon, so families sharing an icon are no longer hidden together, and every family shows up on its own line.
+- Counters in labels are ignored, so the same family is one entry whatever the amount.
+- Pings, shouts, players and death markers are grouped by type, so player messages never appear as entries.
+- Search matches the label, the group key and the icon name, anywhere in the text.
+
 ## 1.0.8
 
 - Rows highlight on hover and the whole row is clickable, not just the checkbox.
