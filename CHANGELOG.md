@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.11
+
+- Clicking or scrolling the list can no longer move the map: the map update is skipped while the panel has the mouse, instead of relying on a method that some game versions do not have.
+- Readable panel: opaque background, framed title, bigger rows, larger text, solid All and None buttons, bigger icons. New Width and Row Height settings.
+
 ## 1.0.10
 
 - The character no longer moves while the panel is open. The keys that close the map keep working.

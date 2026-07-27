@@ -13,7 +13,9 @@ cannot bring hidden icons back.
 | --- | --- | --- |
 | Enabled | true | Master switch. |
 | Panel Key | F | Shows or hides the panel while the large map is open. |
-| Max Height | 420 | Maximum panel height in pixels, the list scrolls beyond that. |
+| Width | 340 | Panel width. |
+| Row Height | 30 | Height of a list row. |
+| Max Height | 480 | Maximum panel height in pixels, the list scrolls beyond that. |
 | Button Width | 150 | Width of the map button. |
 | Button Height | 36 | Height of the map button. |
 | Button Offset X | 0 | Horizontal offset of the map toggle. |

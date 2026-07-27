@@ -14,7 +14,7 @@ namespace PinFilters
     {
         public const string ModGuid = "ashr4f.pinfilters";
         public const string ModName = "PinFilters";
-        public const string ModVersion = "1.0.10";
+        public const string ModVersion = "1.0.11";
 
         internal static ManualLogSource Log = null!;
 
@@ -24,6 +24,8 @@ namespace PinFilters
         internal static ConfigEntry<bool> GroupByIcon = null!;
         internal static ConfigEntry<string> SearchAliases = null!;
         internal static ConfigEntry<string> ExcludedGroups = null!;
+        internal static ConfigEntry<float> PanelWidth = null!;
+        internal static ConfigEntry<float> RowHeight = null!;
         internal static ConfigEntry<float> MaxPanelHeight = null!;
         internal static ConfigEntry<float> ButtonWidth = null!;
         internal static ConfigEntry<float> ButtonHeight = null!;
@@ -53,7 +55,13 @@ namespace PinFilters
             GroupByIcon = Config.Bind("General", "Group By Icon", true,
                 "Group pins by their icon, so every mod pin type gets its own line even when the mod uses no distinct pin type.");
 
-            MaxPanelHeight = Config.Bind("Panel", "Max Height", 420f,
+            PanelWidth = Config.Bind("Panel", "Width", 340f,
+                "Panel width in pixels.");
+
+            RowHeight = Config.Bind("Panel", "Row Height", 30f,
+                "Height of a list row in pixels.");
+
+            MaxPanelHeight = Config.Bind("Panel", "Max Height", 480f,
                 "Maximum panel height in pixels. The list scrolls beyond that.");
 
             ButtonWidth = Config.Bind("Panel", "Button Width", 150f,
@@ -372,6 +380,8 @@ namespace PinFilters
         private static string _search = "";
         private static GUIStyle? _labelStyle;
         private static GUIStyle? _placeholderStyle;
+        private static GUIStyle? _titleStyle;
+        private static GUIStyle? _buttonStyle;
         private static Texture2D? _fill;
 
         internal static void Draw()
@@ -389,10 +399,10 @@ namespace PinFilters
                 if (_search.Length == 0 || Matches(g, _search)) shownGroups.Add(g);
             }
 
-            const float rowH = 26f;
-            float w = 280f;
+            float rowH = PinFiltersPlugin.RowHeight.Value;
+            float w = PinFiltersPlugin.PanelWidth.Value;
             float maxH = Mathf.Min(Screen.height * 0.6f, PinFiltersPlugin.MaxPanelHeight.Value);
-            float wanted = 96f + shownGroups.Count * rowH;
+            float wanted = 120f + shownGroups.Count * rowH;
             float h = Mathf.Min(maxH, wanted);
 
             // Right edge aligned with the button, growing to the left and
@@ -418,8 +428,26 @@ namespace PinFilters
             if (hiddenCount > 0) title += hiddenCount == 1
                 ? T(" (1 hidden)", " (1 masqué)")
                 : T($" ({hiddenCount} hidden)", $" ({hiddenCount} masqués)");
-            GUI.Box(area, title);
-            GUILayout.BeginArea(new Rect(area.x + 8f, area.y + 26f, area.width - 16f, area.height - 34f));
+            // Own background: the default box is too transparent to read over
+            // the map.
+            FillRect(area, new Color(0.05f, 0.05f, 0.06f, 0.94f));
+            FillRect(new Rect(area.x, area.y, area.width, 2f), new Color(1f, 1f, 1f, 0.25f));
+            FillRect(new Rect(area.x, area.yMax - 2f, area.width, 2f), new Color(1f, 1f, 1f, 0.25f));
+            FillRect(new Rect(area.x, area.y, 2f, area.height), new Color(1f, 1f, 1f, 0.25f));
+            FillRect(new Rect(area.xMax - 2f, area.y, 2f, area.height), new Color(1f, 1f, 1f, 0.25f));
+            FillRect(new Rect(area.x + 2f, area.y + 2f, area.width - 4f, 28f), new Color(1f, 1f, 1f, 0.08f));
+
+            if (_titleStyle == null)
+            {
+                _titleStyle = new GUIStyle(GUI.skin.label);
+                _titleStyle.alignment = TextAnchor.MiddleCenter;
+                _titleStyle.fontStyle = FontStyle.Bold;
+                _titleStyle.fontSize = 16;
+                _titleStyle.normal.textColor = new Color(1f, 0.85f, 0.55f);
+            }
+            GUI.Label(new Rect(area.x, area.y + 3f, area.width, 24f), title, _titleStyle);
+
+            GUILayout.BeginArea(new Rect(area.x + 10f, area.y + 34f, area.width - 20f, area.height - 44f));
 
             Rect searchRow = GUILayoutUtility.GetRect(area.width - 16f, 22f);
             Rect searchField = new Rect(searchRow.x, searchRow.y, searchRow.width - (_search.Length > 0 ? 24f : 0f), 22f);
@@ -456,11 +484,10 @@ namespace PinFilters
             {
                 // Explicit rects instead of automatic layout: the checkbox, the
                 // icon and the label are centred on the same row.
-                Rect row = GUILayoutUtility.GetRect(w - 40f, rowH);
-                float cy = row.y + (rowH - 18f) * 0.5f;
-                Rect box = new Rect(row.x, cy, 18f, 18f);
-                Rect ico = new Rect(row.x + 24f, row.y + (rowH - 20f) * 0.5f, 20f, 20f);
-                Rect lab = new Rect(row.x + 50f, row.y, row.width - 50f, rowH);
+                Rect row = GUILayoutUtility.GetRect(w - 44f, rowH);
+                Rect box = new Rect(row.x, row.y + (rowH - 20f) * 0.5f, 20f, 20f);
+                Rect ico = new Rect(row.x + 28f, row.y + (rowH - 24f) * 0.5f, 24f, 24f);
+                Rect lab = new Rect(row.x + 58f, row.y, row.width - 58f, rowH);
 
                 bool shown = !PinGroups.IsHidden(group);
                 bool hover = row.Contains(Event.current.mousePosition);
@@ -487,16 +514,31 @@ namespace PinFilters
             }
             GUILayout.EndScrollView();
 
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button(T("All", "Tout")))
+            if (_buttonStyle == null)
+            {
+                _buttonStyle = new GUIStyle(GUI.skin.button);
+                _buttonStyle.fontSize = 15;
+                _buttonStyle.fontStyle = FontStyle.Bold;
+                _buttonStyle.normal.textColor = new Color(1f, 0.85f, 0.55f);
+                _buttonStyle.hover.textColor = Color.white;
+                _buttonStyle.fixedHeight = 28f;
+            }
+
+            GUILayout.Space(6f);
+            Rect buttons = GUILayoutUtility.GetRect(area.width - 20f, 28f);
+            float half = (buttons.width - 8f) * 0.5f;
+            Rect bAll = new Rect(buttons.x, buttons.y, half, 28f);
+            Rect bNone = new Rect(buttons.x + half + 8f, buttons.y, half, 28f);
+            FillRect(bAll, new Color(1f, 1f, 1f, 0.10f));
+            FillRect(bNone, new Color(1f, 1f, 1f, 0.10f));
+            if (GUI.Button(bAll, T("All", "Tout"), _buttonStyle))
             {
                 foreach (string g in shownGroups) PinGroups.SetHidden(g, false);
             }
-            if (GUILayout.Button(T("None", "Aucun")))
+            if (GUI.Button(bNone, T("None", "Aucun"), _buttonStyle))
             {
                 foreach (string g in shownGroups) PinGroups.SetHidden(g, true);
             }
-            GUILayout.EndHorizontal();
 
             GUILayout.EndArea();
         }
@@ -820,42 +862,23 @@ namespace PinFilters
     }
 
 
-    // The map reads the mouse itself, so scrolling inside the panel would zoom
-    // it. Input is refused for the frame instead of undoing the zoom, which
-    // would flicker.
-    [HarmonyPatch(typeof(Minimap), "UpdateMap")]
-    internal static class Minimap_UpdateMap_Patch
+    // The map reads the mouse in its own update, and the method that takes an
+    // input flag does not exist in every game version. The whole update is
+    // skipped instead while the panel is being used, which blocks panning,
+    // zooming and clicks in one go.
+    [HarmonyPatch(typeof(Minimap), "Update")]
+    internal static class Minimap_Update_Block_Patch
     {
-        private static void Prefix(ref bool takeInput)
+        [HarmonyPriority(Priority.First)]
+        private static bool Prefix(Minimap __instance)
         {
-            if (!takeInput) return;
-            if (!PinFiltersPlugin.Enabled.Value || !FilterPanel.Visible) return;
-            if (Minimap.instance == null || Minimap.instance.m_mode != Minimap.MapMode.Large) return;
+            if (!PinFiltersPlugin.Enabled.Value || !FilterPanel.Visible) return true;
+            if (__instance.m_mode != Minimap.MapMode.Large) return true;
+
+            if (FilterPanel.Interacting) return false;
 
             Vector2 mouse = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-            if (FilterPanel.Interacting || FilterPanel.LastRect.Contains(mouse)) takeInput = false;
-        }
-    }
-
-
-    // The map does not block movement, so the character would walk while the
-    // panel is open. Movement, jump and auto run are cancelled, leaving the
-    // vanilla keys that close the map untouched.
-    [HarmonyPatch(typeof(Player), nameof(Player.SetControls))]
-    internal static class Player_SetControls_Patch
-    {
-        private static void Prefix(Player __instance, ref Vector3 movedir, ref bool jump, ref bool autoRun,
-            ref bool attack, ref bool attackHold, ref bool secondaryAttack, ref bool block)
-        {
-            if (!PinFiltersPlugin.Enabled.Value || !FilterPanel.Visible) return;
-            if (__instance != Player.m_localPlayer) return;
-            movedir = Vector3.zero;
-            jump = false;
-            autoRun = false;
-            attack = false;
-            attackHold = false;
-            secondaryAttack = false;
-            block = false;
+            return !FilterPanel.LastRect.Contains(mouse);
         }
     }
 
@@ -871,7 +894,10 @@ namespace PinFilters
     [HarmonyPatch(typeof(Minimap), "Update")]
     internal static class Minimap_Update_Patch
     {
-        private static void Postfix(Minimap __instance)
+        // Runs even when the update above is skipped, so the key and the
+        // outside click keep working while the panel has the mouse.
+        [HarmonyPriority(Priority.Last)]
+        private static void Prefix(Minimap __instance)
         {
 
             if (!PinFiltersPlugin.Enabled.Value) return;
