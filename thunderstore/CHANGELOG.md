@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.16
+
+- The map button is no longer greyed out when the button it was cloned from happened to be greyed at that moment. It forces itself back to the enabled look, keeps a readable label, and ignores the dimming of the row it sits in.
+
 ## 1.0.15
 
 - Config table in the readme: both button offsets default to 0.

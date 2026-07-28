@@ -14,7 +14,7 @@ namespace PinFilters
     {
         public const string ModGuid = "ashr4f.pinfilters";
         public const string ModName = "PinFilters";
-        public const string ModVersion = "1.0.15";
+        public const string ModVersion = "1.0.16";
 
         internal static ManualLogSource Log = null!;
 
@@ -643,6 +643,7 @@ namespace PinFilters
         private static GameObject? _clone;
         private static Component? _control;
         private static PropertyInfo? _isOn;
+        private static PropertyInfo? _interactable;
         private static bool _isToggle;
         private static bool _failed;
 
@@ -669,6 +670,15 @@ namespace PinFilters
                 _clone.SetActive(true);
                 foreach (Transform child in _clone.GetComponentsInChildren<Transform>(true))
                     child.gameObject.SetActive(true);
+
+                // A CanvasGroup on a parent dims and blocks everything under
+                // it, which is what greys the map controls in some setups. The
+                // clone opts out of the parent groups and keeps its own state.
+                CanvasGroup group = _clone.GetComponent<CanvasGroup>() ?? _clone.AddComponent<CanvasGroup>();
+                group.alpha = 1f;
+                group.interactable = true;
+                group.blocksRaycasts = true;
+                group.ignoreParentGroups = true;
 
                 RectTransform? src = anchor.GetComponent<RectTransform>();
                 RectTransform? rt = _clone.GetComponent<RectTransform>();
@@ -703,6 +713,12 @@ namespace PinFilters
                     }
                 }
                 if (_control == null) throw new Exception("no button or toggle on the clone");
+
+                // The source button is greyed while its own panel has nothing
+                // to offer, and the clone inherits that state for good.
+                _interactable = _control.GetType().GetProperty("interactable");
+                _interactable?.SetValue(_control, true, null);
+                ForceLabelVisible();
 
                 string eventName = _isToggle ? "onValueChanged" : "onClick";
                 PropertyInfo? evt = _control.GetType().GetProperty(eventName);
@@ -761,6 +777,41 @@ namespace PinFilters
                 Delegate action = Delegate.CreateDelegate(ps[0].ParameterType, typeof(MapButton).GetMethod(nameof(OnClick), AccessTools.all));
                 mi.Invoke(handler, new object[] { action });
                 return;
+            }
+        }
+
+        // Full opacity and a readable label when the clone came from a
+        // greyed source. A tinted label is left alone, only dim ones are reset.
+        private static void ForceLabelVisible()
+        {
+            if (_clone == null) return;
+            foreach (Component c in _clone.GetComponentsInChildren<Component>(true))
+            {
+                if (c == null) continue;
+                string type = c.GetType().Name;
+                if (!type.Contains("TextMeshPro") && type != "Text") continue;
+                PropertyInfo? color = c.GetType().GetProperty("color");
+                if (color?.GetValue(c, null) is Color col)
+                {
+                    float max = Mathf.Max(col.r, Mathf.Max(col.g, col.b));
+                    if (col.a < 1f || max < 0.6f) color.SetValue(c, Color.white, null);
+                }
+            }
+        }
+
+        // Whatever disables the button after it was created is undone, so it
+        // never ends up greyed out again.
+        private static void KeepEnabled()
+        {
+            if (_control == null || _interactable == null) return;
+            try
+            {
+                if (_interactable.GetValue(_control, null) is bool on && !on)
+                    _interactable.SetValue(_control, true, null);
+            }
+            catch
+            {
+                _interactable = null;
             }
         }
 
@@ -829,6 +880,7 @@ namespace PinFilters
         internal static void ApplyOffsets(Minimap map)
         {
             if (_clone == null) return;
+            KeepEnabled();
             FieldInfo? field = AccessTools.Field(typeof(Minimap), "m_publicPosition");
             Component? source = field?.GetValue(map) as Component;
             RectTransform? src = source?.GetComponent<RectTransform>();
