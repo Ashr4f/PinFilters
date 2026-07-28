@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.18
+
+- Much cheaper hiding pass. The group of a pin is resolved once per label instead of going through the localization system for every pin on every pass, the hidden list is read once per pass, and pins that are neither hidden nor previously hidden are skipped entirely. On a map carrying thousands of pins the pass now costs almost nothing when nothing is hidden.
+- The group list is only refreshed while the panel is open, which was the other half of the per pin work.
+
 ## 1.0.17
 
 - Checking or unchecking a group now updates the map right away. It used to wait for the cursor to leave the list or the panel to close, because the pins are refreshed by the game update that the panel deliberately holds back.

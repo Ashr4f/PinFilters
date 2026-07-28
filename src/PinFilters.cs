@@ -14,7 +14,7 @@ namespace PinFilters
     {
         public const string ModGuid = "ashr4f.pinfilters";
         public const string ModName = "PinFilters";
-        public const string ModVersion = "1.0.17";
+        public const string ModVersion = "1.0.18";
 
         internal static ManualLogSource Log = null!;
 
@@ -153,13 +153,30 @@ namespace PinFilters
             if (IsDynamicName(pin.m_type))
                 return pin.m_type.ToString();
 
-            string label = Normalize(pin.m_name);
-            if (label.Length > 0) return label;
+            // The label goes through the localization system, which is far too
+            // expensive to redo for every pin on every pass. Same raw label
+            // always gives the same group, so the answer is memoized.
+            string raw = pin.m_name ?? "";
+            string cached;
+            if (raw.Length > 0 && _groupCache.TryGetValue(raw, out cached)) return cached;
 
-            if (PinFiltersPlugin.GroupByIcon.Value && pin.m_icon != null && !string.IsNullOrEmpty(pin.m_icon.name))
-                return pin.m_icon.name;
+            string label = Normalize(raw);
+            string group;
+            if (label.Length > 0) group = label;
+            else if (PinFiltersPlugin.GroupByIcon.Value && pin.m_icon != null && !string.IsNullOrEmpty(pin.m_icon.name)) group = pin.m_icon.name;
+            else group = pin.m_type.ToString();
 
-            return pin.m_type.ToString();
+            if (raw.Length > 0 && Localization.instance != null && _groupCache.Count < 4096) _groupCache[raw] = group;
+            return group;
+        }
+
+        private static readonly Dictionary<string, string> _groupCache = new Dictionary<string, string>();
+
+        // The set is synced once per pass instead of once per pin.
+        internal static HashSet<string> HiddenSet()
+        {
+            SyncFromConfig();
+            return HiddenGroups;
         }
 
         private static bool IsDynamicName(Minimap.PinType type)
@@ -287,7 +304,10 @@ namespace PinFilters
         private static readonly List<KeyValuePair<FieldInfo, FieldInfo>> _nestedGoFields =
             new List<KeyValuePair<FieldInfo, FieldInfo>>();
         private static bool _searched;
-        private static readonly HashSet<CanvasGroup> _touched = new HashSet<CanvasGroup>();
+        // Pins hidden on the previous pass. Anything outside this set and
+        // outside the hidden groups is left completely alone.
+        private static HashSet<Minimap.PinData> _managed = new HashSet<Minimap.PinData>();
+        private static HashSet<Minimap.PinData> _next = new HashSet<Minimap.PinData>();
 
         // Set when a checkbox changes, so the pass runs even if the game
         // update that normally triggers it is skipped this frame.
@@ -300,18 +320,35 @@ namespace PinFilters
             // markers must stay visible whatever the filters say.
             if (PortalPicker.IsOpen) return;
 
+            HashSet<string> hidden = PinGroups.HiddenSet();
+            // The group list only needs to be fresh while the panel is drawn.
+            bool track = FilterPanel.Visible;
+            if (hidden.Count == 0 && _managed.Count == 0 && !track) return;
+
+            _next.Clear();
             foreach (Minimap.PinData pin in map.m_pins)
             {
                 try
                 {
-                    PinGroups.Track(pin);
-                    SetVisible(pin, !PinGroups.IsHidden(PinGroups.GroupOf(pin)));
+                    if (track) PinGroups.Track(pin);
+
+                    bool wasHidden = _managed.Contains(pin);
+                    if (hidden.Count == 0 && !wasHidden) continue;
+
+                    bool hide = hidden.Contains(PinGroups.GroupOf(pin));
+                    if (!hide && !wasHidden) continue;
+
+                    SetVisible(pin, !hide);
+                    if (hide) _next.Add(pin);
                 }
                 catch
                 {
                     // A single broken pin must never abort the pass.
                 }
             }
+            HashSet<Minimap.PinData> done = _managed;
+            _managed = _next;
+            _next = done;
         }
 
         private static void SetVisible(Minimap.PinData pin, bool visible)
@@ -367,7 +404,6 @@ namespace PinFilters
                 cg.alpha = target;
                 cg.blocksRaycasts = visible;
             }
-            _touched.Add(cg);
         }
     }
 
