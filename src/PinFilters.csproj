@@ -4,7 +4,7 @@
     <TargetFramework>net472</TargetFramework>
     <AssemblyName>PinFilters</AssemblyName>
     <RootNamespace>PinFilters</RootNamespace>
-    <Version>1.0.16</Version>
+    <Version>1.0.17</Version>
     <LangVersion>latest</LangVersion>
     <Nullable>annotations</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

@@ -14,7 +14,7 @@ namespace PinFilters
     {
         public const string ModGuid = "ashr4f.pinfilters";
         public const string ModName = "PinFilters";
-        public const string ModVersion = "1.0.16";
+        public const string ModVersion = "1.0.17";
 
         internal static ManualLogSource Log = null!;
 
@@ -215,6 +215,7 @@ namespace PinFilters
             else HiddenGroups.Remove(group);
             _hiddenRaw = string.Join(", ", new List<string>(HiddenGroups).ToArray());
             PinFiltersPlugin.Hidden.Value = _hiddenRaw;
+            PinHider.Dirty = true;
         }
 
         private static void SyncFromConfig()
@@ -287,6 +288,10 @@ namespace PinFilters
             new List<KeyValuePair<FieldInfo, FieldInfo>>();
         private static bool _searched;
         private static readonly HashSet<CanvasGroup> _touched = new HashSet<CanvasGroup>();
+
+        // Set when a checkbox changes, so the pass runs even if the game
+        // update that normally triggers it is skipped this frame.
+        internal static bool Dirty;
 
         internal static void Apply(Minimap map)
         {
@@ -376,6 +381,9 @@ namespace PinFilters
         internal static bool WantsPanel;
         internal static Rect LastRect;
         internal static bool Interacting;
+        // True while the search field owns the keyboard, so the panel key
+        // types a letter instead of closing the list.
+        internal static bool SearchFocused;
         private static Vector2 _scroll;
         private static string _search = "";
         private static GUIStyle? _labelStyle;
@@ -453,6 +461,7 @@ namespace PinFilters
             Rect searchField = new Rect(searchRow.x, searchRow.y, searchRow.width - (_search.Length > 0 ? 24f : 0f), 22f);
             GUI.SetNextControlName("PinFiltersSearch");
             _search = GUI.TextField(searchField, _search);
+            SearchFocused = GUI.GetNameOfFocusedControl() == "PinFiltersSearch";
 
             if (_search.Length == 0 && GUI.GetNameOfFocusedControl() != "PinFiltersSearch")
             {
@@ -926,16 +935,45 @@ namespace PinFilters
     [HarmonyPatch(typeof(Minimap), "Update")]
     internal static class Minimap_Update_Block_Patch
     {
+        // Read by the patch below, which still runs when the update is skipped.
+        internal static bool Blocked;
+
         [HarmonyPriority(Priority.First)]
         private static bool Prefix(Minimap __instance)
         {
+            Blocked = false;
             if (!PinFiltersPlugin.Enabled.Value || !FilterPanel.Visible) return true;
             if (__instance.m_mode != Minimap.MapMode.Large) return true;
 
-            if (FilterPanel.Interacting) return false;
+            if (!FilterPanel.Interacting)
+            {
+                Vector2 mouse = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+                if (!FilterPanel.LastRect.Contains(mouse)) return true;
+            }
 
-            Vector2 mouse = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-            return !FilterPanel.LastRect.Contains(mouse);
+            Blocked = true;
+            return false;
+        }
+    }
+
+    // The large map does not stop the character, so the keys typed in the
+    // panel would walk, jump and swing. Movement and actions are cancelled
+    // while the panel is open, and the keys that close the map still work.
+    [HarmonyPatch(typeof(Player), nameof(Player.SetControls))]
+    internal static class Player_SetControls_Patch
+    {
+        private static void Prefix(Player __instance, ref Vector3 movedir, ref bool jump, ref bool autoRun,
+            ref bool attack, ref bool attackHold, ref bool secondaryAttack, ref bool block)
+        {
+            if (!PinFiltersPlugin.Enabled.Value || !FilterPanel.Visible) return;
+            if (__instance != Player.m_localPlayer) return;
+            movedir = Vector3.zero;
+            jump = false;
+            autoRun = false;
+            attack = false;
+            attackHold = false;
+            secondaryAttack = false;
+            block = false;
         }
     }
 
@@ -970,7 +1008,17 @@ namespace PinFilters
             MapButton.ApplyOffsets(__instance);
             MapButton.Sync();
 
+            // The pins are refreshed by the game update, which is skipped while
+            // the list has the mouse. Without this, a checkbox would only take
+            // effect once the cursor leaves the list or the panel closes.
+            if (PinHider.Dirty || Minimap_Update_Block_Patch.Blocked)
+            {
+                PinHider.Dirty = false;
+                PinHider.Apply(__instance);
+            }
+
             if (Minimap.InTextInput()) return;
+            if (FilterPanel.Visible && FilterPanel.SearchFocused) return;
             if (PinFiltersPlugin.ToggleKey.Value.IsDown()) FilterPanel.Visible = !FilterPanel.Visible;
 
             // A click outside closes the panel, like any menu, and still

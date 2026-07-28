@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.17
+
+- Checking or unchecking a group now updates the map right away. It used to wait for the cursor to leave the list or the panel to close, because the pins are refreshed by the game update that the panel deliberately holds back.
+- Typing in the search field no longer walks, jumps or swings. The freeze that was in place until 1.0.10 is back, and it covers the whole time the panel is open.
+- The panel key types its letter when the search field has the keyboard, instead of closing the list. Searching for Fer or Framb works with the default key.
+
 ## 1.0.16
 
 - The map button is no longer greyed out when the button it was cloned from happened to be greyed at that moment. It forces itself back to the enabled look, keeps a readable label, and ignores the dimming of the row it sits in.
