@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.15
+
+- Config table in the readme: both button offsets default to 0.
+
 ## 1.0.14
 
 - Own mod icon.

@@ -18,8 +18,8 @@ cannot bring hidden icons back.
 | Max Height | 480 | Maximum panel height in pixels, the list scrolls beyond that. |
 | Button Width | 150 | Width of the map button. |
 | Button Height | 36 | Height of the map button. |
-| Button Offset X | 0 | Horizontal offset of the map toggle. |
-| Button Offset Y | 136 | Vertical offset of the map toggle. Raise it if labels overlap. |
+| Button Offset X | 0 | Horizontal fine tuning of the map button, on top of its default placement. |
+| Button Offset Y | 0 | Vertical fine tuning of the map button, which already sits above the cartography row. |
 | Group By Icon | true | Use the icon name as fallback when a pin has no label. Off falls back to the pin type. |
 | Search Aliases |  | Extra search words per group, format group=word1\|word2, comma separated. |
 | Excluded Groups | Shout | Groups never listed, they stay visible on the map. |

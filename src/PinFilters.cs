@@ -14,7 +14,7 @@ namespace PinFilters
     {
         public const string ModGuid = "ashr4f.pinfilters";
         public const string ModName = "PinFilters";
-        public const string ModVersion = "1.0.14";
+        public const string ModVersion = "1.0.15";
 
         internal static ManualLogSource Log = null!;
 
