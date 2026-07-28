@@ -1,0 +1,84 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\ashraf\\AppData\\Roaming\\r2modmanPlus-local\\Valheim\\exports\\PinFilters\\src\\PinFilters.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\ashraf\\AppData\\Roaming\\r2modmanPlus-local\\Valheim\\exports\\PinFilters\\src\\PinFilters.csproj": {
+      "version": "1.0.18",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\ashraf\\AppData\\Roaming\\r2modmanPlus-local\\Valheim\\exports\\PinFilters\\src\\PinFilters.csproj",
+        "projectName": "PinFilters",
+        "projectPath": "C:\\Users\\ashraf\\AppData\\Roaming\\r2modmanPlus-local\\Valheim\\exports\\PinFilters\\src\\PinFilters.csproj",
+        "packagesPath": "C:\\Users\\ashraf\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\ashraf\\AppData\\Roaming\\r2modmanPlus-local\\Valheim\\exports\\PinFilters\\src\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\ashraf\\AppData\\Roaming\\r2modmanPlus-local\\Valheim\\exports\\PinFilters\\NuGet.Config",
+          "C:\\Users\\ashraf\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net472"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {},
+          "https://nuget.bepinex.dev/v3/index.json": {}
+        },
+        "frameworks": {
+          "net472": {
+            "targetAlias": "net472",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net472": {
+          "targetAlias": "net472",
+          "dependencies": {
+            "BepInEx.AssemblyPublicizer.MSBuild": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[0.4.1, )"
+            },
+            "BepInEx.Core": {
+              "include": "Compile",
+              "target": "Package",
+              "version": "[5.4.21, )"
+            },
+            "HarmonyX": {
+              "include": "Compile",
+              "target": "Package",
+              "version": "[2.10.2, )"
+            },
+            "Microsoft.NETFramework.ReferenceAssemblies": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.0.3, )",
+              "autoReferenced": true
+            },
+            "UnityEngine.Modules": {
+              "include": "Compile",
+              "target": "Package",
+              "version": "[2022.3.17, )"
+            },
+            "ValheimGameLibs": {
+              "target": "Package",
+              "version": "[0.221.4, )"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.423\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "dgSpecHash": "c6JhBb/XPIQ=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\ashraf\\AppData\\Roaming\\r2modmanPlus-local\\Valheim\\exports\\PinFilters\\src\\PinFilters.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\ashraf\\.nuget\\packages\\bepinex.assemblypublicizer.msbuild\\0.4.1\\bepinex.assemblypublicizer.msbuild.0.4.1.nupkg.sha512",
+    "C:\\Users\\ashraf\\.nuget\\packages\\bepinex.baselib\\5.4.20\\bepinex.baselib.5.4.20.nupkg.sha512",
+    "C:\\Users\\ashraf\\.nuget\\packages\\bepinex.core\\5.4.21\\bepinex.core.5.4.21.nupkg.sha512",
+    "C:\\Users\\ashraf\\.nuget\\packages\\harmonyx\\2.10.2\\harmonyx.2.10.2.nupkg.sha512",
+    "C:\\Users\\ashraf\\.nuget\\packages\\microsoft.netframework.referenceassemblies\\1.0.3\\microsoft.netframework.referenceassemblies.1.0.3.nupkg.sha512",
+    "C:\\Users\\ashraf\\.nuget\\packages\\microsoft.netframework.referenceassemblies.net472\\1.0.3\\microsoft.netframework.referenceassemblies.net472.1.0.3.nupkg.sha512",
+    "C:\\Users\\ashraf\\.nuget\\packages\\mono.cecil\\0.11.4\\mono.cecil.0.11.4.nupkg.sha512",
+    "C:\\Users\\ashraf\\.nuget\\packages\\monomod.runtimedetour\\22.3.23.4\\monomod.runtimedetour.22.3.23.4.nupkg.sha512",
+    "C:\\Users\\ashraf\\.nuget\\packages\\monomod.utils\\22.3.23.4\\monomod.utils.22.3.23.4.nupkg.sha512",
+    "C:\\Users\\ashraf\\.nuget\\packages\\unityengine.modules\\2022.3.17\\unityengine.modules.2022.3.17.nupkg.sha512",
+    "C:\\Users\\ashraf\\.nuget\\packages\\valheimgamelibs\\0.221.4\\valheimgamelibs.0.221.4.nupkg.sha512"
+  ],
+  "logs": []
+}

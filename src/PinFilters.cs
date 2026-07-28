@@ -83,10 +83,17 @@ namespace PinFilters
         // hook into.
         private void OnGUI()
         {
-            if (!Enabled.Value || !FilterPanel.Visible) return;
+            if (!Enabled.Value || !FilterPanel.Visible)
+            {
+                FilterPanel.Interacting = false;
+                FilterPanel.SearchFocused = false;
+                return;
+            }
             if (Minimap.instance == null || Minimap.instance.m_mode != Minimap.MapMode.Large)
             {
                 FilterPanel.Visible = false;
+                FilterPanel.Interacting = false;
+                FilterPanel.SearchFocused = false;
                 return;
             }
             FilterPanel.Draw();
@@ -586,6 +593,11 @@ namespace PinFilters
             }
 
             GUILayout.EndArea();
+
+            // A drag started inside the panel keeps the map blocked even when
+            // the cursor leaves the list, and the keyboard counts as well while
+            // the search field has the focus.
+            Interacting = GUIUtility.hotControl != 0 || SearchFocused;
         }
 
         // Sprites are atlas regions, so the icon is drawn through its own uv

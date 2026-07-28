@@ -2,6 +2,7 @@
 
 ## 1.0.18
 
+- The map no longer follows the cursor when a drag started in the panel and left the list. The flag that tracks an ongoing interaction was declared but never set, so only the cursor position was taken into account.
 - Much cheaper hiding pass. The group of a pin is resolved once per label instead of going through the localization system for every pin on every pass, the hidden list is read once per pass, and pins that are neither hidden nor previously hidden are skipped entirely. On a map carrying thousands of pins the pass now costs almost nothing when nothing is hidden.
 - The group list is only refreshed while the panel is open, which was the other half of the per pin work.
 
