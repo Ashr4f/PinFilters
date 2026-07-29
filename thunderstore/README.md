@@ -25,6 +25,12 @@ cannot bring hidden icons back.
 | Excluded Groups | Shout | Groups never listed, they stay visible on the map. |
 | Hidden Groups |  | Groups currently unchecked, written automatically. |
 
+## State
+
+The unchecked groups are stored in `BepInEx/config/PinFilters/hidden.txt`, one group per line,
+written automatically. It sits outside the config file on purpose: a modpack update overwrites
+config files and would wipe the player's choices.
+
 ## Install
 
 BepInEx plugin: `BepInEx/plugins/PinFilters.dll`, or via r2modman. Client side only.

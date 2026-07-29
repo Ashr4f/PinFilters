@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
@@ -40,7 +41,7 @@ namespace PinFilters
                 "Master switch.");
 
             Hidden = Config.Bind("General", "Hidden Groups", "",
-                "Comma-separated groups currently unchecked in the panel. Filled automatically, edit only if you want to preset it.");
+                "Legacy field, read once to import older choices. The current state lives in config/PinFilters/hidden.txt so a modpack update cannot wipe it.");
 
             ToggleKey = Config.Bind("General", "Panel Key", new KeyboardShortcut(KeyCode.F),
                 "Key that shows or hides the filter panel while the large map is open.");
@@ -148,8 +149,11 @@ namespace PinFilters
             string s = Localization.instance.Localize(token);
             return string.IsNullOrEmpty(s) || s.StartsWith("[") || s == token ? fallback : s;
         }
-        private static string _hiddenRaw = "";
-        private static bool _synced;
+        // The state is kept in its own file: it used to live in the config file,
+        // where every modpack update overwrote the player's choices. One group
+        // per line also means a label containing a comma no longer breaks it.
+        private static readonly string StatePath = Path.Combine(Paths.ConfigPath, "PinFilters", "hidden.txt");
+        private static bool _loaded;
 
         // Grouping is done on the pin label, stripped of its counter, because
         // several unrelated families can share the same icon. Pins whose name
@@ -182,7 +186,7 @@ namespace PinFilters
         // The set is synced once per pass instead of once per pin.
         internal static HashSet<string> HiddenSet()
         {
-            SyncFromConfig();
+            Load();
             return HiddenGroups;
         }
 
@@ -228,31 +232,62 @@ namespace PinFilters
 
         internal static bool IsHidden(string group)
         {
-            SyncFromConfig();
+            Load();
             return HiddenGroups.Contains(group);
         }
 
         internal static void SetHidden(string group, bool hidden)
         {
-            SyncFromConfig();
+            Load();
             if (hidden) HiddenGroups.Add(group);
             else HiddenGroups.Remove(group);
-            _hiddenRaw = string.Join(", ", new List<string>(HiddenGroups).ToArray());
-            PinFiltersPlugin.Hidden.Value = _hiddenRaw;
+            Save();
             PinHider.Dirty = true;
         }
 
-        private static void SyncFromConfig()
+        private static void Load()
         {
-            string raw = PinFiltersPlugin.Hidden.Value;
-            if (_synced && raw == _hiddenRaw) return;
-            _synced = true;
-            _hiddenRaw = raw;
+            if (_loaded) return;
+            _loaded = true;
             HiddenGroups.Clear();
-            foreach (string part in raw.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            try
+            {
+                if (File.Exists(StatePath))
+                {
+                    foreach (string line in File.ReadAllLines(StatePath))
+                    {
+                        string s = line.Trim();
+                        if (s.Length > 0) HiddenGroups.Add(s);
+                    }
+                    return;
+                }
+            }
+            catch (Exception e)
+            {
+                PinFiltersPlugin.Log.LogWarning($"PinFilters: filter state not read ({e.Message}).");
+                return;
+            }
+
+            // No state file yet: import what the config used to hold.
+            foreach (string part in PinFiltersPlugin.Hidden.Value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
             {
                 string p = part.Trim();
                 if (p.Length > 0) HiddenGroups.Add(p);
+            }
+            if (HiddenGroups.Count > 0) Save();
+        }
+
+        private static void Save()
+        {
+            try
+            {
+                string? dir = Path.GetDirectoryName(StatePath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                File.WriteAllLines(StatePath, new List<string>(HiddenGroups).ToArray());
+            }
+            catch (Exception e)
+            {
+                PinFiltersPlugin.Log.LogWarning($"PinFilters: filter state not saved ({e.Message}).");
             }
         }
     }
@@ -842,17 +877,42 @@ namespace PinFilters
         private static void ForceLabelVisible()
         {
             if (_clone == null) return;
+
+            // Labels and graphics: a dim tint is the greyed out state of the
+            // source button, baked into the clone. Coloured ones are left as is.
             foreach (Component c in _clone.GetComponentsInChildren<Component>(true))
             {
                 if (c == null) continue;
                 string type = c.GetType().Name;
-                if (!type.Contains("TextMeshPro") && type != "Text") continue;
-                PropertyInfo? color = c.GetType().GetProperty("color");
-                if (color?.GetValue(c, null) is Color col)
+                if (!type.Contains("TextMeshPro") && type != "Text" && type != "Image") continue;
+                Brighten(c.GetType().GetProperty("color"), c);
+            }
+
+            // Some buttons are tinted through their colour block instead of the
+            // graphic, and the disabled colour must be bright too in case
+            // something turns the button off again.
+            PropertyInfo? colors = _control?.GetType().GetProperty("colors");
+            object? block = colors?.GetValue(_control, null);
+            if (block == null || colors == null) return;
+            foreach (string name in new[] { "normalColor", "highlightedColor", "pressedColor", "selectedColor", "disabledColor" })
+                Brighten(block.GetType().GetProperty(name), block);
+            colors.SetValue(_control, block, null);
+        }
+
+        private static void Brighten(PropertyInfo? property, object target)
+        {
+            if (property == null || !property.CanWrite) return;
+            try
+            {
+                if (property.GetValue(target, null) is Color col)
                 {
                     float max = Mathf.Max(col.r, Mathf.Max(col.g, col.b));
-                    if (col.a < 1f || max < 0.6f) color.SetValue(c, Color.white, null);
+                    if (col.a < 1f || max < 0.6f) property.SetValue(target, Color.white, null);
                 }
+            }
+            catch
+            {
+                // A property that refuses the write simply keeps its value.
             }
         }
 
