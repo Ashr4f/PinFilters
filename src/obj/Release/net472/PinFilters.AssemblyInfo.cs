@@ -36,7 +36,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PinFilters")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.18.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.18+71231225bb238b3a650256e312b6e6e13a8a8550")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.18+d5fbea3b1dd2daca09694089c41cd10ad560b786")]
 [assembly: System.Reflection.AssemblyProductAttribute("PinFilters")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PinFilters")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.18.0")]

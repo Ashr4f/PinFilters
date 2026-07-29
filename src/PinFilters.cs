@@ -1085,6 +1085,36 @@ namespace PinFilters
         }
     }
 
+    // Zeroing the controls is not enough: crouch, sit, emotes and hotkeys are
+    // read straight from the input in the player update, gated by TakeInput.
+    // Answering false there is what the game itself does while a text field
+    // owns the keyboard. The patch is skipped when the method is not found.
+    [HarmonyPatch]
+    internal static class TakeInput_Patch
+    {
+        private static MethodBase? _target;
+
+        private static bool Prepare()
+        {
+            _target = AccessTools.Method("PlayerController:TakeInput")
+                ?? AccessTools.Method("Player:TakeInput");
+            if (_target == null)
+                PinFiltersPlugin.Log.LogWarning("PinFilters: TakeInput not found, keys stay active while the panel is open.");
+            return _target != null;
+        }
+
+        private static MethodBase TargetMethod()
+        {
+            return _target!;
+        }
+
+        private static void Postfix(ref bool __result)
+        {
+            if (!PinFiltersPlugin.Enabled.Value || !FilterPanel.Visible) return;
+            __result = false;
+        }
+    }
+
     [HarmonyPatch(typeof(Minimap), "UpdatePins")]
     internal static class Minimap_UpdatePins_Patch
     {
