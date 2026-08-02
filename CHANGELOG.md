@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.19
+
+- Naming a new pin works again when everything is hidden. The pin was created inside a hidden group, so it was made invisible on the same frame, along with the field waiting for its name.
+
 ## 1.0.18
 
 - Unchecked groups are remembered in `config/PinFilters/hidden.txt` instead of the config file. A modpack update overwrites config files, which is why the choices came back all checked after an update. Existing choices are imported once.

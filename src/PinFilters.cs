@@ -15,7 +15,7 @@ namespace PinFilters
     {
         public const string ModGuid = "ashr4f.pinfilters";
         public const string ModName = "PinFilters";
-        public const string ModVersion = "1.0.18";
+        public const string ModVersion = "1.0.19";
 
         internal static ManualLogSource Log = null!;
 
@@ -367,12 +367,28 @@ namespace PinFilters
             bool track = FilterPanel.Visible;
             if (hidden.Count == 0 && _managed.Count == 0 && !track) return;
 
+            // A pin being named must stay on screen, otherwise the player is
+            // typing into something invisible. When the field cannot be found,
+            // the whole pass is skipped while the map has a text input.
+            Minimap.PinData? edited = null;
+            if (Minimap.InTextInput())
+            {
+                edited = EditedPin(map);
+                if (edited == null) return;
+            }
+
             _next.Clear();
             foreach (Minimap.PinData pin in map.m_pins)
             {
                 try
                 {
                     if (track) PinGroups.Track(pin);
+
+                    if (pin == edited)
+                    {
+                        SetVisible(pin, true);
+                        continue;
+                    }
 
                     bool wasHidden = _managed.Contains(pin);
                     if (hidden.Count == 0 && !wasHidden) continue;
@@ -391,6 +407,27 @@ namespace PinFilters
             HashSet<Minimap.PinData> done = _managed;
             _managed = _next;
             _next = done;
+        }
+
+        // The pin currently being named. The field name has changed across
+        // versions, so it is looked up by type and skipped when absent.
+        private static FieldInfo? _namePinField;
+        private static bool _namePinSearched;
+
+        private static Minimap.PinData? EditedPin(Minimap map)
+        {
+            if (!_namePinSearched)
+            {
+                _namePinSearched = true;
+                foreach (FieldInfo f in typeof(Minimap).GetFields(AccessTools.all))
+                {
+                    if (!typeof(Minimap.PinData).IsAssignableFrom(f.FieldType)) continue;
+                    if (!f.Name.ToLowerInvariant().Contains("name")) continue;
+                    _namePinField = f;
+                    break;
+                }
+            }
+            return _namePinField?.GetValue(map) as Minimap.PinData;
         }
 
         private static void SetVisible(Minimap.PinData pin, bool visible)
