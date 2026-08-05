@@ -800,6 +800,17 @@ namespace PinFilters
                 foreach (Transform child in _clone.GetComponentsInChildren<Transform>(true))
                     child.gameObject.SetActive(true);
 
+                // The source button carries little state machines that grey it
+                // on their own terms: text colorizers, gamepad hints, tooltips.
+                // The clone must not inherit them, its look is managed here.
+                foreach (Component c in _clone.GetComponentsInChildren<Component>(true))
+                {
+                    if (c == null) continue;
+                    string kind = c.GetType().Name;
+                    if (kind.Contains("ButtonTextColor") || kind.Contains("GamePad") || kind.Contains("Tooltip"))
+                        UnityEngine.Object.Destroy(c);
+                }
+
                 // A CanvasGroup on a parent dims and blocks everything under
                 // it, which is what greys the map controls in some setups. The
                 // clone opts out of the parent groups and keeps its own state.
@@ -944,7 +955,7 @@ namespace PinFilters
                 if (property.GetValue(target, null) is Color col)
                 {
                     float max = Mathf.Max(col.r, Mathf.Max(col.g, col.b));
-                    if (col.a < 1f || max < 0.6f) property.SetValue(target, Color.white, null);
+                    if (col.a < 1f || max < 0.8f) property.SetValue(target, Color.white, null);
                 }
             }
             catch
@@ -1035,6 +1046,7 @@ namespace PinFilters
         {
             if (_clone == null) return;
             KeepEnabled();
+            ForceLabelVisible();
             FieldInfo? field = AccessTools.Field(typeof(Minimap), "m_publicPosition");
             Component? source = field?.GetValue(map) as Component;
             RectTransform? src = source?.GetComponent<RectTransform>();
@@ -1183,10 +1195,12 @@ namespace PinFilters
             MapButton.ApplyOffsets(__instance);
             MapButton.Sync();
 
-            // The pins are refreshed by the game update, which is skipped while
-            // the list has the mouse. Without this, a checkbox would only take
-            // effect once the cursor leaves the list or the panel closes.
-            if (PinHider.Dirty || Minimap_Update_Block_Patch.Blocked)
+            // The pins are refreshed by the game update, which is skipped
+            // while the list has the mouse, and can also be throttled by
+            // performance mods. While the panel is open the pass runs here
+            // every frame, so the list fills the moment it opens and the
+            // checkboxes take effect immediately.
+            if (PinHider.Dirty || Minimap_Update_Block_Patch.Blocked || FilterPanel.Visible)
             {
                 PinHider.Dirty = false;
                 PinHider.Apply(__instance);
