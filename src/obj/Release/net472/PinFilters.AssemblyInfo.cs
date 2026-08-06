@@ -35,11 +35,11 @@ using System.Reflection;
 [assembly: System.Runtime.CompilerServices.IgnoresAccessChecksToAttribute("XGamingRuntime")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("PinFilters")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.18.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.18+d5fbea3b1dd2daca09694089c41cd10ad560b786")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.19.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.19+8f2054078c1b4801fdb4ac25c4a0adbf0e4a2658")]
 [assembly: System.Reflection.AssemblyProductAttribute("PinFilters")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PinFilters")]
-[assembly: System.Reflection.AssemblyVersionAttribute("1.0.18.0")]
+[assembly: System.Reflection.AssemblyVersionAttribute("1.0.19.0")]
 
 // Généré par la classe MSBuild WriteCodeFragment.
 

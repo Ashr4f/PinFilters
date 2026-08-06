@@ -2,6 +2,8 @@
 
 ## 1.0.19
 
+- The list is filled the moment the panel opens. It used to wait for the game to refresh its pins, which some performance mods throttle, leaving the panel empty for a few seconds.
+- The map button no longer shows up greyed depending on when the map was first opened. The components inherited from the source button that dim it on their own are stripped, and the bright look is reapplied every frame.
 - Naming a new pin works again when everything is hidden. The pin was created inside a hidden group, so it was made invisible on the same frame, along with the field waiting for its name.
 
 ## 1.0.18

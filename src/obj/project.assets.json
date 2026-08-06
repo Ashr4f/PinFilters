@@ -1055,7 +1055,7 @@
     "C:\\Users\\ashraf\\.nuget\\packages\\": {}
   },
   "project": {
-    "version": "1.0.18",
+    "version": "1.0.19",
     "restore": {
       "projectUniqueName": "C:\\Users\\ashraf\\AppData\\Roaming\\r2modmanPlus-local\\Valheim\\exports\\PinFilters\\src\\PinFilters.csproj",
       "projectName": "PinFilters",
